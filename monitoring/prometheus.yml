@@ -1,0 +1,15 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files: []
+
+alerting:
+  alertmanagers: []
+
+scrape_configs:
+  - job_name: "alphaguard"
+    static_configs:
+      - targets: ["app:8000"]
+    metrics_path: "/metrics"
+    scrape_interval: 10s
