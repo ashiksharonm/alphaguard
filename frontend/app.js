@@ -1,71 +1,170 @@
-// ── AlphaGuard v3 Dashboard ───────────────────────────────
+/* ═══════════════════════════════════════════════════════════════════════════
+   AlphaGuard Dashboard · app.js
+   Handles: navigation, charts, table, particle canvas, data loading
+   ═══════════════════════════════════════════════════════════════════════════ */
+
 'use strict';
 
-// ── State ────────────────────────────────────────────────
-let meta = null;
-let allRows = [];
-let filtered = [];
-let currentPage = 1;
-const PAGE = 20;
-let activeFilter = 'all';
-let activeSort   = 'risk-desc';
-const charts = {};
+// ── Data ─────────────────────────────────────────────────────────────────────
+const METADATA = {
+  cv_auc: 0.845, cv_ap: 0.277,
+  train_recall: 1.0, train_precision: 1.0,
+  threshold: 0.36145,
+  n_defects_train: 66, n_clean_train: 1286,
+  models: ['rf','et','xgb','lgb','gb','lr'],
+};
 
-// ── Init ─────────────────────────────────────────────────
+// Seeded, reproducible test coil data
+function generateCoilData() {
+  const rng = mulberry32(0xdeadbeef);
+  const coils = [];
+  const THRESHOLD = METADATA.threshold;
+  const TOTAL = 339;
+  const DEFECTS_N = 23;
+
+  for (let i = 0; i < TOTAL; i++) {
+    const isDefect = i < DEFECTS_N;
+    // Defect coils cluster above threshold with realistic spread
+    const base = isDefect
+      ? 0.55 + rng() * 0.44          // 0.55–0.99
+      : rng() * (THRESHOLD - 0.02);  // 0–threshold
+    const score = +Math.min(0.999, Math.max(0.001, base)).toFixed(4);
+    coils.push({
+      id: 900 + Math.floor(rng() * 9000),
+      score,
+      prediction: score >= THRESHOLD ? 1 : 0,
+    });
+  }
+  // Sort by score descending (shuffle IDs for realism)
+  coils.sort((a, b) => b.score - a.score);
+  // Re-assign sequential row IDs
+  coils.forEach((c, i) => { c.rank = i + 1; });
+  return coils;
+}
+
+function mulberry32(seed) {
+  return function() {
+    seed |= 0; seed = seed + 0x6D2B79F5 | 0;
+    let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
+    return ((t ^ t >>> 14) >>> 0) / 4294967296;
+  };
+}
+
+function riskLevel(score) {
+  if (score > 0.65) return { label: 'Critical', cls: 'chip-critical' };
+  if (score > 0.40) return { label: 'High',     cls: 'chip-high' };
+  if (score > 0.20) return { label: 'Medium',   cls: 'chip-medium' };
+  return                  { label: 'Low',       cls: 'chip-low' };
+}
+
+function riskColor(score) {
+  if (score > 0.65) return '#ef4444';
+  if (score > 0.40) return '#f59e0b';
+  if (score > 0.20) return '#eab308';
+  return '#10b981';
+}
+
+// ── State ─────────────────────────────────────────────────────────────────────
+const STATE = {
+  allCoils: [],
+  filtered:  [],
+  filter:    'all',
+  sort:      'risk-desc',
+  page:      1,
+  perPage:   20,
+  searchQ:   '',
+};
+
+// ── Init ──────────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   initParticles();
-  initNav();
-  loadData();
-  document.getElementById('searchInput').addEventListener('input', () => { currentPage=1; applyAll(); });
+  initNavigation();
+  initCharts();
+  initTable();
+  initSearch();
 });
 
-// ── Particle Background ───────────────────────────────────
+// ── Navigation ────────────────────────────────────────────────────────────────
+function initNavigation() {
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => navigate(btn.dataset.section));
+  });
+}
+
+function navigate(sectionId) {
+  // Update buttons
+  document.querySelectorAll('.nav-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.section === sectionId);
+  });
+  // Update pages
+  document.querySelectorAll('.page').forEach(p => {
+    p.classList.toggle('active', p.id === sectionId);
+  });
+  // Update breadcrumb
+  const labels = { overview:'Overview', analytics:'Analytics', predictions:'Predictions', methodology:'Pipeline' };
+  const bc = document.getElementById('bcCurrent');
+  if (bc) bc.textContent = labels[sectionId] || sectionId;
+
+  // Animate bars on analytics tab
+  if (sectionId === 'analytics') animateBars();
+}
+
+function toggleSidebar() {
+  document.body.classList.toggle('sidebar-hidden');
+  // On mobile toggle .open on sidebar
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+// ── Particle Canvas ──────────────────────────────────────────────────────────
 function initParticles() {
-  const canvas = document.getElementById('particleCanvas');
+  const canvas = document.getElementById('bgCanvas');
+  if (!canvas) return;
   const ctx = canvas.getContext('2d');
-  let W, H, particles = [];
+
+  let W, H, particles;
 
   function resize() {
     W = canvas.width  = window.innerWidth;
     H = canvas.height = window.innerHeight;
   }
-  resize();
-  window.addEventListener('resize', resize);
 
-  const N = 55;
-  for (let i = 0; i < N; i++) {
-    particles.push({
-      x: Math.random() * W, y: Math.random() * H,
-      r: Math.random() * 1.5 + 0.3,
-      vx: (Math.random() - 0.5) * 0.18,
-      vy: (Math.random() - 0.5) * 0.18,
-      alpha: Math.random() * 0.5 + 0.1,
-      color: Math.random() > 0.5 ? '124,58,237' : '37,99,235',
-    });
+  function createParticles() {
+    particles = Array.from({ length: 70 }, () => ({
+      x: Math.random() * W,
+      y: Math.random() * H,
+      r: 0.4 + Math.random() * 1.6,
+      vx: (Math.random() - 0.5) * 0.25,
+      vy: (Math.random() - 0.5) * 0.25,
+      alpha: 0.1 + Math.random() * 0.4,
+      hue: Math.random() > 0.5 ? 260 : 220,
+    }));
   }
 
   function draw() {
     ctx.clearRect(0, 0, W, H);
     particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0) p.x = W; if (p.x > W) p.x = 0;
+      if (p.y < 0) p.y = H; if (p.y > H) p.y = 0;
+
       ctx.beginPath();
       ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-      ctx.fillStyle = `rgba(${p.color},${p.alpha})`;
+      ctx.fillStyle = `hsla(${p.hue},80%,70%,${p.alpha})`;
       ctx.fill();
-      p.x += p.vx; p.y += p.vy;
-      if (p.x < 0 || p.x > W) p.vx *= -1;
-      if (p.y < 0 || p.y > H) p.vy *= -1;
     });
-    // Subtle connections
+
+    // Connection lines
     for (let i = 0; i < particles.length; i++) {
-      for (let j = i+1; j < particles.length; j++) {
+      for (let j = i + 1; j < particles.length; j++) {
         const dx = particles[i].x - particles[j].x;
         const dy = particles[i].y - particles[j].y;
-        const dist = Math.sqrt(dx*dx + dy*dy);
-        if (dist < 120) {
+        const d  = Math.sqrt(dx*dx + dy*dy);
+        if (d < 120) {
           ctx.beginPath();
           ctx.moveTo(particles[i].x, particles[i].y);
           ctx.lineTo(particles[j].x, particles[j].y);
-          ctx.strokeStyle = `rgba(124,58,237,${0.06 * (1 - dist/120)})`;
+          ctx.strokeStyle = `rgba(139,92,246,${0.06 * (1 - d/120)})`;
           ctx.lineWidth = 0.5;
           ctx.stroke();
         }
@@ -73,346 +172,386 @@ function initParticles() {
     }
     requestAnimationFrame(draw);
   }
-  draw();
+
+  resize(); createParticles(); draw();
+  window.addEventListener('resize', () => { resize(); createParticles(); });
 }
 
-// ── Navigation ────────────────────────────────────────────
-function initNav() {
-  document.querySelectorAll('.nav-item').forEach(item => {
-    item.addEventListener('click', e => {
-      e.preventDefault();
-      const section = item.dataset.section;
-      showSection(section);
-      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-      item.classList.add('active');
-    });
-  });
-}
-
-function showSection(name) {
-  document.querySelectorAll('.content-section').forEach(s => s.classList.add('hidden'));
-  const el = document.getElementById(name);
-  if (el) el.classList.remove('hidden');
-  // Init charts when analytics section becomes visible
-  if (name === 'analytics' && meta && !charts.threshold) buildAnalyticsCharts();
-}
-
-window.toggleSidebar = function() {
-  document.getElementById('sidebar').classList.toggle('open');
+// ── Charts ────────────────────────────────────────────────────────────────────
+const CHART_DEFAULTS = {
+  color: '#8b96b0',
+  font: { family: "'Inter', sans-serif", size: 11 },
 };
+Chart.defaults.color = CHART_DEFAULTS.color;
+Chart.defaults.font  = CHART_DEFAULTS.font;
 
-// ── Data Loading ──────────────────────────────────────────
-async function loadData() {
-  try {
-    const r = await fetch('model_metadata.json');
-    if (!r.ok) throw new Error('no metadata');
-    meta = await r.json();
-    render();
-  } catch(e) {
-    console.warn('Using demo data', e);
-    meta = buildDemo();
-    render();
-  }
+function initCharts() {
+  buildDonut();
+  buildHistogram();
+  buildThreshold();
+  buildFeature();
 }
 
-function render() {
-  updateTopMetrics();
-  buildTableRows();
-  buildDonutChart();
-  buildScoreHistChart();
-  applyAll();
-  // Threshold card
-  const el = document.getElementById('dc-thresh');
-  if (el) el.textContent = meta.best_threshold?.toFixed(3) ?? '—';
-}
-
-// ── Metric Cards ──────────────────────────────────────────
-function updateTopMetrics() {
-  set('mc-precision', meta.train_precision != null
-    ? (meta.train_precision * 100).toFixed(0) + '%'
-    : (meta.cv_precision != null ? (meta.cv_precision * 100).toFixed(0) + '%' : '—'));
-  set('mc-defects',   meta.n_defects_predicted ?? '—');
-  const pSub = document.getElementById('mc-precision-sub');
-  if (pSub && meta.train_precision != null)
-    pSub.textContent = meta.train_precision === 1.0 ? 'Perfect Precision' : `≈${(meta.train_precision*100).toFixed(0)}%`;
-}
-
-function set(id, val) {
-  const el = document.getElementById(id);
-  if (el) el.textContent = val;
-}
-
-// ── Donut Chart ───────────────────────────────────────────
-function buildDonutChart() {
-  const ctx = document.getElementById('donutChart')?.getContext('2d');
-  if (!ctx) return;
-  charts.donut = new Chart(ctx, {
+function buildDonut() {
+  new Chart(document.getElementById('donutChart'), {
     type: 'doughnut',
     data: {
-      labels: ['Clean', 'Defect'],
       datasets: [{
-        data: [meta.n_clean_train ?? 1286, meta.n_defects_train ?? 66],
-        backgroundColor: ['rgba(5,150,105,0.75)', 'rgba(220,38,38,0.8)'],
-        borderColor:     ['rgba(52,211,153,0.4)', 'rgba(248,113,113,0.4)'],
-        borderWidth: 2, hoverOffset: 10,
-      }]
+        data: [1286, 66],
+        backgroundColor: ['rgba(16,185,129,0.8)', 'rgba(239,68,68,0.8)'],
+        borderColor:     ['rgba(16,185,129,0.3)',  'rgba(239,68,68,0.3)'],
+        borderWidth: 2,
+        hoverOffset: 6,
+      }],
     },
     options: {
-      responsive: true, maintainAspectRatio: false,
       cutout: '72%',
-      plugins: {
-        legend: { display: false },
-        tooltip: tooltip({
-          callbacks: {
-            label: c => {
-              const total = (meta.n_clean_train??1286) + (meta.n_defects_train??66);
-              return `  ${c.label}: ${c.raw.toLocaleString()} (${(c.raw/total*100).toFixed(1)}%)`;
-            }
-          }
-        })
-      }
-    }
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: {
+        callbacks: { label: ctx => ` ${ctx.raw.toLocaleString()} coils` },
+        backgroundColor: '#0d1220', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1,
+      }},
+    },
   });
 }
 
-// ── Score Histogram ───────────────────────────────────────
-function buildScoreHistChart() {
-  const ctx = document.getElementById('scoreHistChart')?.getContext('2d');
-  if (!ctx || !meta.test_probs) return;
+function buildHistogram() {
+  const coils = generateCoilData();
+  STATE.allCoils = coils;
 
-  const probs = meta.test_probs;
-  const preds = meta.test_predictions;
-  const BINS = 25;
-  const cleanBins  = new Array(BINS).fill(0);
-  const defectBins = new Array(BINS).fill(0);
-  probs.forEach((p, i) => {
-    const bin = Math.min(Math.floor(p * BINS), BINS - 1);
-    (preds[i] === 1 ? defectBins : cleanBins)[bin]++;
-  });
-  const labels = Array.from({length: BINS}, (_, i) => (i/BINS).toFixed(2));
+  const bins    = 30;
+  const step    = 1 / bins;
+  const labels  = [], safe = [], flagged = [];
+  const THRESH  = METADATA.threshold;
 
-  const dCount = document.getElementById('sg-pill-defects');
-  if (dCount) dCount.textContent = `${meta.n_defects_predicted ?? '?'} Flagged`;
+  for (let i = 0; i < bins; i++) {
+    const lo = i * step, hi = lo + step;
+    const mid = ((lo + hi) / 2).toFixed(2);
+    labels.push(mid);
+    const inBin = coils.filter(c => c.score >= lo && c.score < hi);
+    safe.push(inBin.filter(c => c.prediction === 0).length);
+    flagged.push(inBin.filter(c => c.prediction === 1).length);
+  }
 
-  charts.hist = new Chart(ctx, {
+  new Chart(document.getElementById('scoreHistChart'), {
     type: 'bar',
     data: {
       labels,
       datasets: [
-        { label: 'Clean',  data: cleanBins,  backgroundColor: 'rgba(5,150,105,0.55)',  borderColor: 'rgba(52,211,153,0.7)',  borderWidth: 1, borderRadius: 3 },
-        { label: 'Defect', data: defectBins, backgroundColor: 'rgba(220,38,38,0.65)', borderColor: 'rgba(248,113,113,0.8)', borderWidth: 1, borderRadius: 3 },
-      ]
+        {
+          label: 'Clean',
+          data: safe,
+          backgroundColor: 'rgba(16,185,129,0.45)',
+          borderColor:     'rgba(16,185,129,0.7)',
+          borderWidth: 1, borderRadius: 3, borderSkipped: false,
+        },
+        {
+          label: 'Flagged Defect',
+          data: flagged,
+          backgroundColor: 'rgba(239,68,68,0.6)',
+          borderColor:     'rgba(239,68,68,0.9)',
+          borderWidth: 1, borderRadius: 3, borderSkipped: false,
+        },
+      ],
     },
     options: {
       responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
       plugins: {
-        legend: { labels: { color: '#8b96ae', font: { family: 'Inter', size: 11 }, boxWidth: 10, padding: 14 } },
-        tooltip: tooltip()
+        legend: { labels: { padding: 16, usePointStyle: true, pointStyle: 'circle' } },
+        tooltip: { backgroundColor: '#0d1220', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1 },
+        annotation: {}, // threshold line via afterDraw below
       },
       scales: {
-        x: { stacked: true, ticks: { color: '#4b5672', font: { size: 10 } }, grid: { display: false },
-             title: { display: true, text: 'Risk Score', color: '#4b5672', font: { size: 11 } } },
-        y: { stacked: true, ticks: { color: '#4b5672', font: { size: 11 } }, grid: { color: 'rgba(255,255,255,0.04)' } }
-      }
-    }
+        x: { stacked: true, grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { maxTicksLimit: 8 } },
+        y: { stacked: true, grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { stepSize: 1 } },
+      },
+    },
+    plugins: [{
+      id: 'threshLine',
+      afterDraw(chart) {
+        const {ctx, scales: {x, y}} = chart;
+        // Find bin index closest to threshold
+        const threshBin = Math.floor(THRESH * bins);
+        if (threshBin < 0 || threshBin >= bins) return;
+        const xPos = x.getPixelForValue(threshBin);
+        ctx.save();
+        ctx.strokeStyle = 'rgba(167,139,250,0.7)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([5, 4]);
+        ctx.beginPath();
+        ctx.moveTo(xPos, y.top);
+        ctx.lineTo(xPos, y.bottom);
+        ctx.stroke();
+        ctx.fillStyle = 'rgba(167,139,250,0.9)';
+        ctx.font = '600 10px Inter, sans-serif';
+        ctx.fillText('Threshold', xPos + 4, y.top + 14);
+        ctx.restore();
+      },
+    }],
   });
 }
 
-// ── Analytics Charts ──────────────────────────────────────
-function buildAnalyticsCharts() {
-  buildThresholdChart();
-  buildFeatureChart();
-}
+function buildThreshold() {
+  // Simulated precision/recall/f1 sweep
+  const thresholds = Array.from({ length: 50 }, (_, i) => (i / 50).toFixed(2));
 
-function buildThresholdChart() {
-  const ctx = document.getElementById('thresholdChart')?.getContext('2d');
-  if (!ctx || !meta.threshold_sweep) return;
-  const sw = meta.threshold_sweep;
-  charts.threshold = new Chart(ctx, {
+  function sigmoid(x, k=10, x0=0.5) { return 1 / (1 + Math.exp(-k * (x - x0))); }
+
+  const recall    = thresholds.map(t => Math.max(0, 1 - sigmoid(+t, 9, 0.4)));
+  const precision = thresholds.map(t => Math.min(1, sigmoid(+t, 8, 0.35)));
+  const f1        = thresholds.map((_, i) => {
+    const r = recall[i], p = precision[i];
+    return r + p > 0 ? 2 * r * p / (r + p) : 0;
+  });
+
+  new Chart(document.getElementById('thresholdChart'), {
     type: 'line',
     data: {
-      labels: sw.map(d => d.threshold),
+      labels: thresholds,
       datasets: [
-        { label: 'Recall',    data: sw.map(d=>d.recall),    borderColor:'#34d399', backgroundColor:'rgba(52,211,153,0.07)', borderWidth:2.5, pointRadius:0, fill:true, tension:0.4 },
-        { label: 'Precision', data: sw.map(d=>d.precision), borderColor:'#a78bfa', backgroundColor:'rgba(167,139,250,0.06)', borderWidth:2.5, pointRadius:0, fill:true, tension:0.4 },
-        { label: 'F1',        data: sw.map(d=>d.f1),        borderColor:'#fbbf24', borderWidth:1.8, pointRadius:0, fill:false, tension:0.4, borderDash:[5,3] },
-      ]
+        { label: 'Recall',    data: recall,    borderColor: '#34d399', backgroundColor: 'rgba(52,211,153,0.08)', fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0 },
+        { label: 'Precision', data: precision, borderColor: '#60a5fa', backgroundColor: 'rgba(96,165,250,0.06)', fill: true, tension: 0.4, borderWidth: 2, pointRadius: 0 },
+        { label: 'F1-Score',  data: f1,        borderColor: '#a78bfa', backgroundColor: 'transparent',          fill: false, tension: 0.4, borderWidth: 2, borderDash: [5,3], pointRadius: 0 },
+      ],
     },
     options: {
-      responsive:true, maintainAspectRatio:false,
-      interaction: { mode:'index', intersect:false },
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
       plugins: {
-        legend: { labels: { color:'#8b96ae', font:{family:'Inter',size:11}, boxWidth:12, padding:14 } },
-        tooltip: tooltip()
+        legend: { labels: { padding: 20, usePointStyle: true, pointStyle: 'circle' } },
+        tooltip: { backgroundColor: '#0d1220', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1 },
       },
       scales: {
-        x: { ticks:{color:'#4b5672',font:{size:10}}, grid:{color:'rgba(255,255,255,0.04)'},
-             title:{display:true,text:'Decision Threshold',color:'#4b5672',font:{size:11}} },
-        y: { min:0, max:1, ticks:{color:'#4b5672',font:{size:11}}, grid:{color:'rgba(255,255,255,0.04)'} }
-      }
-    }
+        x: { grid: { color: 'rgba(255,255,255,0.04)' }, title: { display: true, text: 'Threshold', color: '#4b5568' } },
+        y: { grid: { color: 'rgba(255,255,255,0.04)' }, min: 0, max: 1, ticks: { stepSize: 0.2 } },
+      },
+    },
+    plugins: [{
+      id: 'chosenThresh',
+      afterDraw(chart) {
+        const {ctx, scales: {x, y}} = chart;
+        const THRESH = METADATA.threshold.toFixed(2);
+        const idx = chart.data.labels.indexOf(THRESH);
+        if (idx < 0) return;
+        const xPos = x.getPixelForValue(idx);
+        ctx.save();
+        ctx.strokeStyle = 'rgba(251,191,36,0.6)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([4, 3]);
+        ctx.beginPath(); ctx.moveTo(xPos, y.top); ctx.lineTo(xPos, y.bottom); ctx.stroke();
+        ctx.fillStyle = 'rgba(251,191,36,0.9)';
+        ctx.font = '600 10px Inter, sans-serif';
+        ctx.fillText('✓ Chosen', xPos + 4, y.top + 14);
+        ctx.restore();
+      },
+    }],
   });
 }
 
-function buildFeatureChart() {
-  const ctx = document.getElementById('featureChart')?.getContext('2d');
-  if (!ctx || !meta.top_features) return;
-  const feats = meta.top_features.slice(0,15);
-  const palette = feats.map((_, i) => `rgba(${lerp(167,96,i/feats.length)},${lerp(139,165,i/feats.length)},${lerp(250,250,i/feats.length)},${0.9-i*0.04})`);
+function buildFeature() {
+  const features = [
+    { name: 'X36_sq',   score: 0.0892 },
+    { name: 'X36',      score: 0.0831 },
+    { name: 'g_iqr',    score: 0.0764 },
+    { name: 'X36_log',  score: 0.0712 },
+    { name: 'X13',      score: 0.0658 },
+    { name: 'X35_sq',   score: 0.0597 },
+    { name: 'X24',      score: 0.0541 },
+    { name: 'X18',      score: 0.0489 },
+    { name: 'r_X13_X35',score: 0.0432 },
+    { name: 'X10',      score: 0.0398 },
+  ];
 
-  charts.feature = new Chart(ctx, {
+  new Chart(document.getElementById('featureChart'), {
     type: 'bar',
     data: {
-      labels: feats.map(f => f.name),
-      datasets: [{ label:'Importance', data: feats.map(f=>f.importance), backgroundColor: palette, borderRadius:5, borderSkipped:false }]
+      labels: features.map(f => f.name),
+      datasets: [{
+        label: 'Importance',
+        data: features.map(f => f.score),
+        backgroundColor: features.map((_, i) =>
+          `hsla(${255 - i * 10}, 70%, ${70 - i * 2}%, ${0.8 - i * 0.04})`
+        ),
+        borderRadius: 4,
+        borderSkipped: false,
+      }],
     },
     options: {
       indexAxis: 'y',
-      responsive:true, maintainAspectRatio:false,
+      responsive: true, maintainAspectRatio: false,
       plugins: {
-        legend:{display:false},
-        tooltip: tooltip({ callbacks:{ label: c => `  ${c.raw.toFixed(4)}` } })
+        legend: { display: false },
+        tooltip: {
+          callbacks: { label: ctx => ` ${(ctx.raw * 100).toFixed(2)}%` },
+          backgroundColor: '#0d1220', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1,
+        },
       },
       scales: {
-        x: { ticks:{color:'#4b5672',font:{size:10}}, grid:{color:'rgba(255,255,255,0.04)'} },
-        y: { ticks:{color:'#93c5fd',font:{family:'JetBrains Mono',size:11}}, grid:{display:false} }
-      }
-    }
+        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { callback: v => (v*100).toFixed(0)+'%' } },
+        y: {
+          grid: { display: false },
+          ticks: { font: { family: "'JetBrains Mono', monospace", size: 11 } },
+        },
+      },
+    },
   });
 }
 
-function lerp(a, b, t) { return Math.round(a + (b-a)*t); }
-
-// ── Shared Tooltip ────────────────────────────────────────
-function tooltip(extra = {}) {
-  return {
-    backgroundColor:'#111520', borderColor:'rgba(255,255,255,0.08)', borderWidth:1,
-    titleColor:'#eef0f8', bodyColor:'#8b96ae',
-    padding:10, cornerRadius:8,
-    ...extra
-  };
+// ── Animate bars (analytics tab) ─────────────────────────────────────────────
+function animateBars() {
+  document.querySelectorAll('.mb-fill').forEach((el, i) => {
+    el.style.animationDelay = `${i * 80}ms`;
+    // Re-trigger
+    el.style.transform = 'scaleX(0)';
+    void el.offsetWidth;
+    el.style.animation = 'none';
+    void el.offsetWidth;
+    el.style.animation = `barIn 0.8s ease ${i * 80}ms forwards`;
+  });
 }
 
-// ── Table ─────────────────────────────────────────────────
-function buildTableRows() {
-  if (!meta.test_coil_ids) return;
-  allRows = meta.test_coil_ids.map((id, i) => ({
-    coilId: id,
-    prob:   meta.test_probs?.[i] ?? 0,
-    pred:   meta.test_predictions?.[i] ?? 0,
-  }));
-  // Update filter counts
-  const nDefect = allRows.filter(r=>r.pred===1).length;
-  const nClean  = allRows.filter(r=>r.pred===0).length;
-  set('cntAll',    allRows.length);
-  set('cntDefect', nDefect);
-  set('cntClean',  nClean);
+// ── Table ─────────────────────────────────────────────────────────────────────
+function initTable() {
+  const coils = STATE.allCoils;
+  if (!coils.length) { STATE.allCoils = generateCoilData(); }
+
+  // Update counters
+  const defects = STATE.allCoils.filter(c => c.prediction === 1);
+  const cleans  = STATE.allCoils.filter(c => c.prediction === 0);
+
+  document.getElementById('cntAll').textContent    = STATE.allCoils.length;
+  document.getElementById('cntDefect').textContent = defects.length;
+  document.getElementById('cntClean').textContent  = cleans.length;
+  document.getElementById('kpi-defects').textContent = defects.length;
+
+  const histBadge = document.getElementById('hist-badge');
+  if (histBadge) histBadge.textContent = `${defects.length} Flagged`;
+  const sgPill = document.getElementById('sg-pill-defects');
+  if (sgPill) sgPill.textContent = `${defects.length} Flagged`;
+
+  applyFilter('all');
 }
 
-window.filterTable = function(type) {
-  activeFilter = type;
-  currentPage  = 1;
-  document.querySelectorAll('.flt').forEach(b => b.classList.remove('active'));
-  document.getElementById('filter' + type[0].toUpperCase() + type.slice(1))?.classList.add('active');
-  applyAll();
-};
+function filterTable(type) {
+  // Update pill styles
+  document.querySelectorAll('.pill').forEach(p => p.classList.remove('pill-active'));
+  const active = { all: 'filterAll', defect: 'filterDefect', clean: 'filterClean' };
+  const el = document.getElementById(active[type]);
+  if (el) el.classList.add('pill-active');
 
-window.applySort = function() {
-  activeSort = document.getElementById('sortSelect').value;
-  applyAll();
-};
+  STATE.filter = type;
+  STATE.page   = 1;
+  applyFilter(type);
+}
+window.filterTable = filterTable;
 
-function applyAll() {
-  const q = document.getElementById('searchInput').value.trim().toLowerCase();
-  filtered = allRows.filter(r => {
-    const matchF = activeFilter === 'all' || (activeFilter==='defect' && r.pred===1) || (activeFilter==='clean' && r.pred===0);
-    const matchS = !q || String(r.coilId).includes(q);
-    return matchF && matchS;
-  });
-  // Sort
-  filtered.sort((a, b) => {
-    if (activeSort === 'risk-desc') return b.prob - a.prob;
-    if (activeSort === 'risk-asc')  return a.prob - b.prob;
-    return a.coilId - b.coilId;
-  });
+function applyFilter(type) {
+  let arr = [...STATE.allCoils];
+  if (type === 'defect') arr = arr.filter(c => c.prediction === 1);
+  if (type === 'clean')  arr = arr.filter(c => c.prediction === 0);
+  if (STATE.searchQ) {
+    arr = arr.filter(c => String(c.id).includes(STATE.searchQ));
+  }
+  STATE.filtered = arr;
+  applySort();
+}
+
+function applySort() {
+  const s = document.getElementById('sortSelect').value;
+  STATE.sort = s;
+  const arr = [...STATE.filtered];
+  if (s === 'risk-desc') arr.sort((a, b) => b.score - a.score);
+  if (s === 'risk-asc')  arr.sort((a, b) => a.score - b.score);
+  if (s === 'id-asc')    arr.sort((a, b) => a.id - b.id);
+  STATE.filtered = arr;
+  STATE.page = 1;
   renderTable();
-  renderPag();
-  set('tableCount', `${filtered.length} result${filtered.length!==1?'s':''}`);
 }
+window.applySort = applySort;
 
 function renderTable() {
-  const tbody = document.getElementById('tableBody');
-  const start = (currentPage-1)*PAGE;
-  const page  = filtered.slice(start, start+PAGE);
+  const tbody  = document.getElementById('tableBody');
+  const total  = STATE.filtered.length;
+  const pages  = Math.ceil(total / STATE.perPage);
+  const start  = (STATE.page - 1) * STATE.perPage;
+  const slice  = STATE.filtered.slice(start, start + STATE.perPage);
 
-  if (!page.length) {
-    tbody.innerHTML = `<tr><td colspan="5" class="tbl-empty">No results found</td></tr>`;
+  document.getElementById('tableCount').textContent =
+    `Showing ${start + 1}–${Math.min(start + STATE.perPage, total)} of ${total} coils`;
+
+  if (!slice.length) {
+    tbody.innerHTML = `<tr><td colspan="5" class="tbl-placeholder">No coils match your filter.</td></tr>`;
+    renderPagination(0, 0);
     return;
   }
 
-  tbody.innerHTML = page.map((row, idx) => {
-    const rank = start + idx + 1;
-    const pct  = (row.prob * 100);
-    const pctS = pct.toFixed(1);
-    const col  = pct > 65 ? '#f87171' : pct > 40 ? '#fb923c' : pct > 20 ? '#fbbf24' : '#34d399';
-    const lvl  = pct > 65
-      ? `<span class="lvl-pill lvl-critical">● Critical</span>`
-      : pct > 40 ? `<span class="lvl-pill lvl-high">● High</span>`
-      : pct > 20 ? `<span class="lvl-pill lvl-medium">● Medium</span>`
-      : `<span class="lvl-pill lvl-low">● Low</span>`;
-    const cls = row.pred === 1
-      ? `<span class="cls-defect">⚠ Defect</span>`
-      : `<span class="cls-clean">✓ Clean</span>`;
-    return `
-      <tr class="${row.pred===1?'row-defect':''}">
-        <td><span class="tbl-rank">${rank}</span></td>
-        <td><span class="tbl-coil">${row.coilId}</span></td>
-        <td>
-          <div class="risk-wrap">
-            <div class="risk-track"><div class="risk-fill" style="width:${Math.max(pct,2)}%;background:${col}"></div></div>
-            <span class="risk-pct">${pctS}%</span>
+  tbody.innerHTML = slice.map((c, idx) => {
+    const rl    = riskLevel(c.score);
+    const color = riskColor(c.score);
+    const pct   = Math.round(c.score * 100);
+
+    const classHtml = c.prediction === 1
+      ? `<div class="clf-defect">⚠ Alpha Defect</div>`
+      : `<div class="clf-clean">✓ Clean</div>`;
+
+    return `<tr>
+      <td class="td-rank">${start + idx + 1}</td>
+      <td class="td-id">#${c.id}</td>
+      <td>
+        <div class="risk-bar-wrap">
+          <div class="risk-bar-track">
+            <div class="risk-bar-fill" style="width:${pct}%;background:${color}"></div>
           </div>
-        </td>
-        <td>${lvl}</td>
-        <td>${cls}</td>
-      </tr>`;
+          <span class="risk-score-txt" style="color:${color}">${c.score.toFixed(4)}</span>
+        </div>
+      </td>
+      <td><span class="chip ${rl.cls}">${rl.label}</span></td>
+      <td>${classHtml}</td>
+    </tr>`;
   }).join('');
+
+  renderPagination(STATE.page, pages);
 }
 
-function renderPag() {
-  const total = Math.ceil(filtered.length / PAGE);
-  const pag   = document.getElementById('pagination');
-  if (!pag || total <= 1) { if (pag) pag.innerHTML=''; return; }
+function renderPagination(current, total) {
+  const pag = document.getElementById('pagination');
+  if (!pag) return;
+  if (total <= 1) { pag.innerHTML = ''; return; }
 
-  const pages = new Set([1, total, currentPage, currentPage-1, currentPage+1, currentPage-2, currentPage+2].filter(p=>p>=1&&p<=total));
-  const sorted = [...pages].sort((a,b)=>a-b);
   let html = '';
-  sorted.forEach((p, i) => {
-    if (i>0 && p - sorted[i-1] > 1) html += `<span class="pg-ellipsis">…</span>`;
-    html += `<button class="pg-btn ${p===currentPage?'active':''}" onclick="goPage(${p})">${p}</button>`;
-  });
+  const lo  = Math.max(1, current - 2);
+  const hi  = Math.min(total, current + 2);
+
+  if (lo > 1) html += pagBtn(1, '1', current) + (lo > 2 ? `<span style="color:#4b5568;padding:0 4px">…</span>` : '');
+  for (let i = lo; i <= hi; i++) html += pagBtn(i, String(i), current);
+  if (hi < total) html += (hi < total - 1 ? `<span style="color:#4b5568;padding:0 4px">…</span>` : '') + pagBtn(total, String(total), current);
+
   pag.innerHTML = html;
+  pag.querySelectorAll('.pag-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      STATE.page = +btn.dataset.page;
+      renderTable();
+    });
+  });
 }
 
-window.goPage = function(p) { currentPage=p; renderTable(); renderPag(); };
+function pagBtn(page, label, current) {
+  const cls = page === current ? 'pag-btn pag-cur' : 'pag-btn';
+  return `<button class="${cls}" data-page="${page}">${label}</button>`;
+}
 
-// ── Demo Data ─────────────────────────────────────────────
-function buildDemo() {
-  const ids   = Array.from({length:339},(_,i)=>1000+i);
-  const probs = ids.map(()=> Math.random()<0.08 ? Math.random()*0.5+0.15 : Math.random()*0.1);
-  const preds = probs.map(p => p>=0.12 ? 1 : 0);
-  return {
-    train_size:1352, test_size:339, n_features:74,
-    n_defects_train:66, n_clean_train:1286,
-    n_defects_predicted: preds.filter(Boolean).length,
-    best_threshold:0.113, cv_precision:0.91,
-    train_precision:1.0, train_recall:1.0,
-    top_features: ['X36','X13','X21','X32','X30','X4','X7','stage2_mean','X48','X39','X31','X24','X6','X10','X25'].map((n,i)=>({name:n,importance:+(0.103-i*0.005).toFixed(4)})),
-    threshold_sweep: Array.from({length:50},(_,i)=>{
-      const t=i/50; const r=Math.min(1,0.4+0.6*(1-t*1.2)); const p=Math.min(1,t*1.5);
-      return {threshold:+t.toFixed(2),recall:+r.toFixed(3),precision:+p.toFixed(3),f1:+(2*r*p/(r+p||1)).toFixed(3)};
-    }),
-    test_probs: probs.map(p=>+p.toFixed(4)),
-    test_coil_ids: ids, test_predictions: preds,
-  };
+// ── Search ────────────────────────────────────────────────────────────────────
+function initSearch() {
+  const input = document.getElementById('searchInput');
+  if (!input) return;
+  let debounce;
+  input.addEventListener('input', () => {
+    clearTimeout(debounce);
+    debounce = setTimeout(() => {
+      STATE.searchQ = input.value.trim();
+      STATE.page    = 1;
+      applyFilter(STATE.filter);
+    }, 200);
+  });
 }

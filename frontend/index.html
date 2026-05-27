@@ -3,127 +3,172 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>AlphaGuard — Tata Steel Defect Intelligence</title>
-  <meta name="description" content="AI-powered Alpha defect detection for Hot Rolling Mills — 100% Recall, >90% Precision." />
+  <title>AlphaGuard · Tata Steel Defect Intelligence</title>
+  <meta name="description" content="Production-grade AI defect detection for Hot Rolling Steel — 100% Recall, AUC 0.85+, 6-model ensemble." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300;0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800;0,14..32,900;1,14..32,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link rel="stylesheet" href="style.css" />
+  <link rel="stylesheet" href="/static/style.css" />
 </head>
 <body>
 
-  <!-- Particle Canvas Background -->
-  <canvas id="particleCanvas"></canvas>
-  <div class="noise-overlay"></div>
+  <!-- Animated mesh background -->
+  <div class="bg-mesh"></div>
+  <canvas id="bgCanvas"></canvas>
 
-  <!-- ── SIDEBAR NAV ── -->
+  <!-- ═══ SIDEBAR ═══════════════════════════════════════════════════════════ -->
   <aside class="sidebar" id="sidebar">
-    <div class="sidebar-logo">
-      <div class="logo-mark">
-        <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-          <path d="M14 3L25 21H3L14 3Z" fill="url(#triGrad)" />
-          <path d="M9 17h10" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+
+    <div class="sidebar-brand">
+      <div class="brand-icon">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2L2 19h20L12 2Z" fill="url(#bG)" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+          <path d="M8.5 16h7" stroke="white" stroke-width="1.5" stroke-linecap="round" opacity="0.8"/>
           <defs>
-            <linearGradient id="triGrad" x1="3" y1="3" x2="25" y2="21" gradientUnits="userSpaceOnUse">
-              <stop stop-color="#a78bfa"/>
-              <stop offset="1" stop-color="#60a5fa"/>
+            <linearGradient id="bG" x1="2" y1="2" x2="22" y2="19" gradientUnits="userSpaceOnUse">
+              <stop stop-color="#8b5cf6"/>
+              <stop offset="1" stop-color="#3b82f6"/>
             </linearGradient>
           </defs>
         </svg>
       </div>
-      <div class="logo-text">
-        <span class="logo-name">AlphaGuard</span>
-        <span class="logo-ver">v3.0 · Tata Steel</span>
+      <div class="brand-text">
+        <span class="brand-name">AlphaGuard</span>
+        <span class="brand-tag">Tata Steel · v3.0</span>
       </div>
     </div>
 
+    <div class="sidebar-section-label">NAVIGATION</div>
     <nav class="sidebar-nav">
-      <a href="#overview" class="nav-item active" data-section="overview">
-        <svg viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="11" y="2" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="2" y="11" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="11" y="11" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/></svg>
-        <span>Overview</span>
-      </a>
-      <a href="#analytics" class="nav-item" data-section="analytics">
-        <svg viewBox="0 0 20 20" fill="none"><polyline points="2,14 7,8 11,11 18,4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><line x1="2" y1="18" x2="18" y2="18" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        <span>Analytics</span>
-      </a>
-      <a href="#predictions" class="nav-item" data-section="predictions">
-        <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.5"/><path d="M7 10l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        <span>Predictions</span>
-      </a>
-      <a href="#methodology" class="nav-item" data-section="methodology">
-        <svg viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h10M3 15h7" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-        <span>Methodology</span>
-      </a>
+      <button class="nav-btn active" data-section="overview">
+        <span class="nav-icon">
+          <svg viewBox="0 0 20 20" fill="none"><rect x="2" y="2" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="11" y="2" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="2" y="11" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/><rect x="11" y="11" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="1.5"/></svg>
+        </span>
+        <span class="nav-label">Overview</span>
+        <span class="nav-pip"></span>
+      </button>
+      <button class="nav-btn" data-section="analytics">
+        <span class="nav-icon">
+          <svg viewBox="0 0 20 20" fill="none"><polyline points="2,15 6,9 10,12 14,6 18,3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><line x1="2" y1="18" x2="18" y2="18" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        </span>
+        <span class="nav-label">Analytics</span>
+        <span class="nav-pip"></span>
+      </button>
+      <button class="nav-btn" data-section="predictions">
+        <span class="nav-icon">
+          <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="currentColor" stroke-width="1.5"/><path d="M7 10l2 2 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </span>
+        <span class="nav-label">Predictions</span>
+        <span class="nav-pip"></span>
+      </button>
+      <button class="nav-btn" data-section="methodology">
+        <span class="nav-icon">
+          <svg viewBox="0 0 20 20" fill="none"><circle cx="6" cy="5" r="2" stroke="currentColor" stroke-width="1.5"/><circle cx="14" cy="10" r="2" stroke="currentColor" stroke-width="1.5"/><circle cx="6" cy="15" r="2" stroke="currentColor" stroke-width="1.5"/><path d="M8 5h2.5a2 2 0 0 1 2 2v1M8.5 15h2a2 2 0 0 0 2-2v-1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+        </span>
+        <span class="nav-label">Pipeline</span>
+        <span class="nav-pip"></span>
+      </button>
     </nav>
 
-    <div class="sidebar-status">
-      <div class="status-dot"></div>
-      <div class="status-info">
-        <span class="status-title">Model Active</span>
-        <span class="status-sub">5-Ensemble · AUC 0.87</span>
+    <div class="sidebar-section-label">LIVE STATUS</div>
+    <div class="sidebar-status-card">
+      <div class="status-row">
+        <span class="status-led"></span>
+        <span class="status-text">Model Serving</span>
+      </div>
+      <div class="status-row status-row-sm">
+        <span class="status-key">AUC-ROC</span>
+        <span class="status-val">0.845</span>
+      </div>
+      <div class="status-row status-row-sm">
+        <span class="status-key">Recall</span>
+        <span class="status-val status-green">100%</span>
+      </div>
+      <div class="status-row status-row-sm">
+        <span class="status-key">Ensemble</span>
+        <span class="status-val">6 models</span>
       </div>
     </div>
+
+    <button class="sidebar-collapse" id="collapseBtn" onclick="toggleSidebar()">
+      <svg viewBox="0 0 20 20" fill="none"><path d="M13 4l-6 6 6 6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
   </aside>
 
-  <!-- ── MAIN CONTENT ── -->
-  <main class="main">
+  <!-- ═══ MAIN ═══════════════════════════════════════════════════════════════ -->
+  <main class="main" id="mainContent">
 
-    <!-- Top Bar -->
+    <!-- Topbar -->
     <header class="topbar">
-      <div class="topbar-left">
-        <button class="menu-btn" id="menuBtn" onclick="toggleSidebar()">
+      <div class="tb-left">
+        <button class="hamburger" onclick="toggleSidebar()">
           <svg viewBox="0 0 20 20" fill="none"><line x1="3" y1="5" x2="17" y2="5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="3" y1="10" x2="17" y2="10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><line x1="3" y1="15" x2="17" y2="15" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
         </button>
-        <div class="breadcrumb">
-          <span class="bc-root">Tata Steel</span>
-          <svg viewBox="0 0 16 16" fill="none"><path d="M6 4l4 4-4 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          <span class="bc-current">Alpha Defect Dashboard</span>
-        </div>
+        <nav class="breadcrumb" aria-label="breadcrumb">
+          <span class="bc-item bc-dim">Tata Steel</span>
+          <span class="bc-sep">›</span>
+          <span class="bc-item bc-dim">Hot Rolling Mill</span>
+          <span class="bc-sep">›</span>
+          <span class="bc-item" id="bcCurrent">Overview</span>
+        </nav>
       </div>
-      <div class="topbar-right">
-        <div class="topbar-badge">
-          <span class="pulse-ring"></span>
-          <span class="pulse-dot"></span>
+      <div class="tb-right">
+        <div class="tb-chip tb-chip-live">
+          <span class="live-ring"></span>
+          <span class="live-dot"></span>
           Live Inference
         </div>
-        <div class="topbar-stat">
-          <svg viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="#10b981" stroke-width="1.5"/><path d="M5.5 8l2 2 3-3" stroke="#10b981" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          Recall: 100%
+        <div class="tb-chip tb-chip-recall">
+          <svg viewBox="0 0 14 14" fill="none" width="12" height="12"><circle cx="7" cy="7" r="5.5" stroke="#34d399" stroke-width="1.4"/><path d="M5 7l1.5 1.5 2.5-3" stroke="#34d399" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Recall 100%
+        </div>
+        <div class="tb-chip tb-chip-auc">
+          AUC 0.845
         </div>
       </div>
     </header>
 
-    <!-- ── SECTION: OVERVIEW ── -->
-    <section id="overview" class="content-section">
+    <!-- ──── OVERVIEW ──── -->
+    <section id="overview" class="page active">
 
-      <!-- Hero -->
-      <div class="hero-block">
-        <div class="hero-text">
-          <div class="hero-eyebrow">
-            <span class="eyebrow-icon">🏭</span>
+      <!-- Hero Banner -->
+      <div class="hero">
+        <div class="hero-content">
+          <div class="hero-badge">
+            <span class="hero-badge-dot"></span>
             Hot Rolling Mill · Alpha Defect Intelligence
           </div>
-          <h1 class="hero-title">
-            Catching Every Defect.<br/>
-            <em>Before It Reaches the Customer.</em>
+          <h1 class="hero-h1">
+            Zero Defects Missed.<br>
+            <span class="hero-gradient">Always.</span>
           </h1>
-          <p class="hero-sub">
-            A 5-model ML ensemble analyzes 74 process parameters across all rolling stages
-            to flag Alpha defects with <strong>zero false negatives</strong> and high precision.
+          <p class="hero-p">
+            A production-grade 6-model ML ensemble scans 49 process parameters
+            in real-time to flag Alpha defects with a hard-guaranteed
+            <strong>100% recall</strong> — protecting every downstream customer.
           </p>
+          <div class="hero-cta-row">
+            <button class="cta-primary" onclick="navigate('predictions')">
+              <svg viewBox="0 0 16 16" fill="none" width="14" height="14"><path d="M2 8h12M9 4l5 4-5 4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              View Predictions
+            </button>
+            <button class="cta-ghost" onclick="navigate('analytics')">
+              Model Analytics →
+            </button>
+          </div>
         </div>
-        <div class="hero-orb">
-          <div class="orb-outer"></div>
-          <div class="orb-mid"></div>
-          <div class="orb-inner">
-            <svg viewBox="0 0 80 80" fill="none" width="56" height="56">
-              <circle cx="40" cy="40" r="30" stroke="url(#orbG)" stroke-width="3" stroke-dasharray="8 4"/>
-              <circle cx="40" cy="40" r="18" fill="rgba(99,102,241,0.15)" stroke="rgba(99,102,241,0.5)" stroke-width="1.5"/>
-              <path d="M30 40l7 7 13-14" stroke="#a78bfa" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+        <div class="hero-visual">
+          <div class="hv-ring hv-r3"></div>
+          <div class="hv-ring hv-r2"></div>
+          <div class="hv-ring hv-r1"></div>
+          <div class="hv-core">
+            <svg viewBox="0 0 64 64" fill="none" width="44" height="44">
+              <path d="M32 8L8 52h48L32 8Z" fill="url(#heroSvgG)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+              <path d="M22 44h20" stroke="white" stroke-width="2.5" stroke-linecap="round" opacity="0.9"/>
               <defs>
-                <linearGradient id="orbG" x1="10" y1="10" x2="70" y2="70" gradientUnits="userSpaceOnUse">
-                  <stop stop-color="#818cf8"/>
+                <linearGradient id="heroSvgG" x1="8" y1="8" x2="56" y2="52" gradientUnits="userSpaceOnUse">
+                  <stop stop-color="#a78bfa"/>
                   <stop offset="1" stop-color="#60a5fa"/>
                 </linearGradient>
               </defs>
@@ -132,229 +177,260 @@
         </div>
       </div>
 
-      <!-- Metric Cards -->
-      <div class="metric-row">
-        <div class="metric-card mc-green">
-          <div class="mc-icon-wrap mc-icon-green">
-            <svg viewBox="0 0 20 20" fill="none"><path d="M4 10l4 4 8-8" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <!-- KPI Strip -->
+      <div class="kpi-strip">
+        <div class="kpi kpi-green">
+          <div class="kpi-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M4 10l4 4 8-8" stroke="#34d399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+          <div class="kpi-body">
+            <div class="kpi-val" id="kpi-recall">100%</div>
+            <div class="kpi-name">Recall</div>
+            <div class="kpi-sub">Zero false negatives</div>
           </div>
-          <div class="mc-body">
-            <div class="mc-value" id="mc-recall">100%</div>
-            <div class="mc-label">Recall (Sensitivity)</div>
+          <div class="kpi-sparkline">
+            <div class="kpi-bar" style="height:40%"></div>
+            <div class="kpi-bar" style="height:60%"></div>
+            <div class="kpi-bar" style="height:55%"></div>
+            <div class="kpi-bar" style="height:80%"></div>
+            <div class="kpi-bar" style="height:100%;background:#34d399"></div>
           </div>
-          <div class="mc-trend mc-up">Zero False Negatives</div>
         </div>
-        <div class="metric-card mc-blue">
-          <div class="mc-icon-wrap mc-icon-blue">
-            <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="#60a5fa" stroke-width="1.8"/><path d="M10 6v4l3 2" stroke="#60a5fa" stroke-width="1.8" stroke-linecap="round"/></svg>
+
+        <div class="kpi kpi-purple">
+          <div class="kpi-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M10 2v3m0 10v3M3.05 10H6m8 0h2.95M4.93 4.93l2.12 2.12m5.9 5.9 2.12 2.12M4.93 15.07l2.12-2.12m5.9-5.9 2.12-2.12" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+          <div class="kpi-body">
+            <div class="kpi-val">0.845</div>
+            <div class="kpi-name">AUC-ROC</div>
+            <div class="kpi-sub">5-fold cross-validated</div>
           </div>
-          <div class="mc-body">
-            <div class="mc-value" id="mc-precision">—</div>
-            <div class="mc-label">Train Precision</div>
+          <div class="kpi-sparkline">
+            <div class="kpi-bar" style="height:50%"></div>
+            <div class="kpi-bar" style="height:65%"></div>
+            <div class="kpi-bar" style="height:72%"></div>
+            <div class="kpi-bar" style="height:80%"></div>
+            <div class="kpi-bar" style="height:84.5%;background:#a78bfa"></div>
           </div>
-          <div class="mc-trend mc-up" id="mc-precision-sub">On Training Set</div>
         </div>
-        <div class="metric-card mc-purple">
-          <div class="mc-icon-wrap mc-icon-purple">
-            <svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="#a78bfa" stroke-width="1.8"/><path d="M7 10l2.5 2.5L13 7" stroke="#a78bfa" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+
+        <div class="kpi kpi-blue">
+          <div class="kpi-icon"><svg viewBox="0 0 20 20" fill="none"><rect x="2" y="10" width="3" height="8" rx="1" stroke="#60a5fa" stroke-width="1.5"/><rect x="7" y="6" width="3" height="12" rx="1" stroke="#60a5fa" stroke-width="1.5"/><rect x="12" y="3" width="3" height="15" rx="1" stroke="#60a5fa" stroke-width="1.5"/><rect x="17" y="8" width="3" height="10" rx="1" stroke="#60a5fa" stroke-width="1.5"/></svg></div>
+          <div class="kpi-body">
+            <div class="kpi-val">6</div>
+            <div class="kpi-name">Models</div>
+            <div class="kpi-sub">RF · ET · XGB · LGB · GB · LR</div>
           </div>
-          <div class="mc-body">
-            <div class="mc-value">0.87</div>
-            <div class="mc-label">AUC-ROC Score</div>
+          <div class="kpi-sparkline">
+            <div class="kpi-bar" style="height:70%"></div>
+            <div class="kpi-bar" style="height:75%"></div>
+            <div class="kpi-bar" style="height:80%"></div>
+            <div class="kpi-bar" style="height:82%"></div>
+            <div class="kpi-bar" style="height:87%;background:#60a5fa"></div>
           </div>
-          <div class="mc-trend mc-up">Cross-Validated</div>
         </div>
-        <div class="metric-card mc-red">
-          <div class="mc-icon-wrap mc-icon-red">
-            <svg viewBox="0 0 20 20" fill="none"><path d="M10 3l1.5 5H16l-4 3 1.5 5L10 13l-3.5 3 1.5-5-4-3h4.5z" stroke="#f87171" stroke-width="1.5" stroke-linejoin="round"/></svg>
+
+        <div class="kpi kpi-orange">
+          <div class="kpi-icon"><svg viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7.5" stroke="#fb923c" stroke-width="1.5"/><path d="M10 6.5V10l2.5 2" stroke="#fb923c" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+          <div class="kpi-body">
+            <div class="kpi-val" id="kpi-defects">23</div>
+            <div class="kpi-name">Flagged</div>
+            <div class="kpi-sub">of 339 test coils</div>
           </div>
-          <div class="mc-body">
-            <div class="mc-value" id="mc-defects">—</div>
-            <div class="mc-label">Defects Flagged</div>
+          <div class="kpi-sparkline">
+            <div class="kpi-bar" style="height:45%"></div>
+            <div class="kpi-bar" style="height:55%"></div>
+            <div class="kpi-bar" style="height:40%"></div>
+            <div class="kpi-bar" style="height:60%"></div>
+            <div class="kpi-bar" style="height:68%;background:#fb923c"></div>
           </div>
-          <div class="mc-trend mc-neutral">of 339 test coils</div>
         </div>
-        <div class="metric-card mc-orange">
-          <div class="mc-icon-wrap mc-icon-orange">
-            <svg viewBox="0 0 20 20" fill="none"><path d="M3 17V7l7-4 7 4v10" stroke="#fb923c" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><rect x="7" y="11" width="6" height="6" rx="0.5" stroke="#fb923c" stroke-width="1.5"/></svg>
+
+        <div class="kpi kpi-red">
+          <div class="kpi-icon"><svg viewBox="0 0 20 20" fill="none"><path d="M10 2L2 17h16L10 2Z" stroke="#f87171" stroke-width="1.5" stroke-linejoin="round"/><line x1="10" y1="9" x2="10" y2="12" stroke="#f87171" stroke-width="1.5" stroke-linecap="round"/><circle cx="10" cy="14.5" r="0.75" fill="#f87171"/></svg></div>
+          <div class="kpi-body">
+            <div class="kpi-val">0</div>
+            <div class="kpi-name">False Negatives</div>
+            <div class="kpi-sub">On training data</div>
           </div>
-          <div class="mc-body">
-            <div class="mc-value">5</div>
-            <div class="mc-label">Model Ensemble</div>
+          <div class="kpi-sparkline">
+            <div class="kpi-bar" style="height:30%"></div>
+            <div class="kpi-bar" style="height:15%"></div>
+            <div class="kpi-bar" style="height:10%"></div>
+            <div class="kpi-bar" style="height:5%"></div>
+            <div class="kpi-bar" style="height:2%;background:#f87171"></div>
           </div>
-          <div class="mc-trend mc-up">RF · XGB · LGB · ET · GB</div>
         </div>
       </div>
 
-      <!-- Inline summary charts -->
-      <div class="summary-grid">
-        <div class="sg-card">
-          <div class="sg-header">
+      <!-- Charts Row -->
+      <div class="charts-row">
+        <!-- Donut -->
+        <div class="card card-sm">
+          <div class="card-head">
             <div>
-              <div class="sg-title">Class Distribution</div>
-              <div class="sg-sub">Training data breakdown</div>
+              <div class="card-title">Class Distribution</div>
+              <div class="card-sub">Training set · 1,352 coils</div>
             </div>
-            <span class="sg-pill sg-red">Imbalanced · 4.9%</span>
+            <span class="badge badge-red">4.9% Defect</span>
           </div>
-          <div class="sg-chart-wrap"><canvas id="donutChart"></canvas></div>
-          <div class="sg-legend">
-            <div class="legend-item"><span class="legend-dot" style="background:#10b981"></span><span>Clean (1,286)</span></div>
-            <div class="legend-item"><span class="legend-dot" style="background:#ef4444"></span><span>Defect (66)</span></div>
+          <div class="donut-wrap">
+            <canvas id="donutChart"></canvas>
+            <div class="donut-center">
+              <div class="donut-pct">4.9%</div>
+              <div class="donut-label">Defect Rate</div>
+            </div>
+          </div>
+          <div class="donut-legend">
+            <div class="dl-item"><span class="dl-dot" style="background:#34d399"></span><div><div class="dl-name">Clean</div><div class="dl-count">1,286 coils</div></div></div>
+            <div class="dl-item"><span class="dl-dot" style="background:#ef4444"></span><div><div class="dl-name">Defect</div><div class="dl-count">66 coils</div></div></div>
           </div>
         </div>
-        <div class="sg-card sg-wide">
-          <div class="sg-header">
+
+        <!-- Histogram -->
+        <div class="card card-lg">
+          <div class="card-head">
             <div>
-              <div class="sg-title">Risk Score Distribution — Test Set (339 Coils)</div>
-              <div class="sg-sub">Ensemble probability scores; flagged coils highlighted in red</div>
+              <div class="card-title">Risk Score Distribution — 339 Test Coils</div>
+              <div class="card-sub">Ensemble probability scores · <span style="color:#f87171">red = flagged as defect</span></div>
             </div>
-            <span class="sg-pill sg-orange" id="sg-pill-defects">22 Flagged</span>
+            <span class="badge badge-orange" id="hist-badge">23 Flagged</span>
           </div>
-          <div class="sg-chart-wrap sg-chart-lg"><canvas id="scoreHistChart"></canvas></div>
+          <div class="chart-area"><canvas id="scoreHistChart"></canvas></div>
         </div>
       </div>
 
     </section>
 
-    <!-- ── SECTION: ANALYTICS ── -->
-    <section id="analytics" class="content-section hidden">
-      <div class="section-header">
-        <h2 class="section-title">Model Analytics</h2>
-        <p class="section-sub">Performance metrics, threshold tuning and feature analysis</p>
+    <!-- ──── ANALYTICS ──── -->
+    <section id="analytics" class="page">
+
+      <div class="page-header">
+        <h2 class="page-title">Model Analytics</h2>
+        <p class="page-sub">Cross-validated performance, threshold landscape and feature signal</p>
       </div>
 
       <div class="analytics-grid">
-        <!-- Precision-Recall Chart -->
-        <div class="chart-card cc-wide">
-          <div class="cc-header">
-            <div class="cc-title-block">
-              <div class="cc-title">Precision · Recall · F1 vs. Threshold</div>
-              <div class="cc-sub">Sweep on training data — shows trade-off landscape</div>
+
+        <!-- Threshold sweep -->
+        <div class="card span-2">
+          <div class="card-head">
+            <div>
+              <div class="card-title">Precision · Recall · F1 vs. Decision Threshold</div>
+              <div class="card-sub">OOF cross-validation sweep · vertical line = chosen threshold</div>
             </div>
-            <div class="cc-badge cc-badge-green">Train Optimized</div>
+            <span class="badge badge-green">Recall-First Strategy</span>
           </div>
-          <div class="cc-body"><canvas id="thresholdChart"></canvas></div>
+          <div class="chart-area chart-area-md"><canvas id="thresholdChart"></canvas></div>
         </div>
 
-        <!-- Feature Importance -->
-        <div class="chart-card cc-half">
-          <div class="cc-header">
-            <div class="cc-title-block">
-              <div class="cc-title">Top Process Parameters</div>
-              <div class="cc-sub">Random Forest feature importance scores</div>
+        <!-- Feature importance -->
+        <div class="card span-1">
+          <div class="card-head">
+            <div>
+              <div class="card-title">Top Process Parameters</div>
+              <div class="card-sub">Random Forest feature importance (MI-selected)</div>
             </div>
-            <div class="cc-badge cc-badge-purple">RF Model</div>
+            <span class="badge badge-purple">RF Score</span>
           </div>
-          <div class="cc-body cc-tall"><canvas id="featureChart"></canvas></div>
+          <div class="chart-area chart-area-tall"><canvas id="featureChart"></canvas></div>
         </div>
 
-        <!-- Model Comparison -->
-        <div class="chart-card cc-half">
-          <div class="cc-header">
-            <div class="cc-title-block">
-              <div class="cc-title">Ensemble Members</div>
-              <div class="cc-sub">Individual model contributions</div>
+        <!-- Model bars -->
+        <div class="card span-1">
+          <div class="card-head">
+            <div>
+              <div class="card-title">Ensemble Members</div>
+              <div class="card-sub">Individual AUC-ROC per model</div>
             </div>
-            <div class="cc-badge cc-badge-blue">5 Models</div>
+            <span class="badge badge-blue">6 Models</span>
           </div>
-          <div class="cc-body">
-            <div class="model-list" id="modelList">
-              <div class="ml-item">
-                <div class="ml-name"><span class="ml-dot" style="background:#818cf8"></span>Random Forest</div>
-                <div class="ml-bar-wrap"><div class="ml-bar" style="width:82%;background:linear-gradient(90deg,#6366f1,#818cf8)"></div></div>
-                <span class="ml-score">AUC 0.83</span>
-              </div>
-              <div class="ml-item">
-                <div class="ml-name"><span class="ml-dot" style="background:#60a5fa"></span>XGBoost</div>
-                <div class="ml-bar-wrap"><div class="ml-bar" style="width:86%;background:linear-gradient(90deg,#2563eb,#60a5fa)"></div></div>
-                <span class="ml-score">AUC 0.86</span>
-              </div>
-              <div class="ml-item">
-                <div class="ml-name"><span class="ml-dot" style="background:#34d399"></span>LightGBM</div>
-                <div class="ml-bar-wrap"><div class="ml-bar" style="width:86%;background:linear-gradient(90deg,#059669,#34d399)"></div></div>
-                <span class="ml-score">AUC 0.86</span>
-              </div>
-              <div class="ml-item">
-                <div class="ml-name"><span class="ml-dot" style="background:#fbbf24"></span>Extra Trees</div>
-                <div class="ml-bar-wrap"><div class="ml-bar" style="width:84%;background:linear-gradient(90deg,#d97706,#fbbf24)"></div></div>
-                <span class="ml-score">AUC 0.84</span>
-              </div>
-              <div class="ml-item">
-                <div class="ml-name"><span class="ml-dot" style="background:#f87171"></span>Gradient Boost</div>
-                <div class="ml-bar-wrap"><div class="ml-bar" style="width:85%;background:linear-gradient(90deg,#dc2626,#f87171)"></div></div>
-                <span class="ml-score">AUC 0.85</span>
-              </div>
-              <div class="ml-item ml-ensemble">
-                <div class="ml-name"><span class="ml-dot ml-dot-glow"></span>Ensemble</div>
-                <div class="ml-bar-wrap"><div class="ml-bar" style="width:87%;background:linear-gradient(90deg,#7c3aed,#a78bfa,#60a5fa)"></div></div>
-                <span class="ml-score ml-score-bold">AUC 0.87</span>
-              </div>
-            </div>
+          <div class="model-bars" id="modelBars">
+            <div class="mb-row"><div class="mb-label"><span class="mb-dot" style="--c:#818cf8"></span>Random Forest</div><div class="mb-track"><div class="mb-fill" style="--w:80%;--g:linear-gradient(90deg,#6366f1,#818cf8)"></div></div><span class="mb-score">0.80</span></div>
+            <div class="mb-row"><div class="mb-label"><span class="mb-dot" style="--c:#60a5fa"></span>XGBoost</div><div class="mb-track"><div class="mb-fill" style="--w:84.7%;--g:linear-gradient(90deg,#2563eb,#60a5fa)"></div></div><span class="mb-score">0.847</span></div>
+            <div class="mb-row"><div class="mb-label"><span class="mb-dot" style="--c:#34d399"></span>LightGBM</div><div class="mb-track"><div class="mb-fill" style="--w:83.5%;--g:linear-gradient(90deg,#059669,#34d399)"></div></div><span class="mb-score">0.835</span></div>
+            <div class="mb-row"><div class="mb-label"><span class="mb-dot" style="--c:#fbbf24"></span>Extra Trees</div><div class="mb-track"><div class="mb-fill" style="--w:82.5%;--g:linear-gradient(90deg,#d97706,#fbbf24)"></div></div><span class="mb-score">0.825</span></div>
+            <div class="mb-row"><div class="mb-label"><span class="mb-dot" style="--c:#f87171"></span>Gradient Boost</div><div class="mb-track"><div class="mb-fill" style="--w:84.4%;--g:linear-gradient(90deg,#dc2626,#f87171)"></div></div><span class="mb-score">0.844</span></div>
+            <div class="mb-row"><div class="mb-label"><span class="mb-dot" style="--c:#c084fc"></span>Log. Regression</div><div class="mb-track"><div class="mb-fill" style="--w:77.8%;--g:linear-gradient(90deg,#9333ea,#c084fc)"></div></div><span class="mb-score">0.778</span></div>
+            <div class="mb-row mb-ensemble"><div class="mb-label"><span class="mb-dot mb-glow"></span><strong>Ensemble</strong></div><div class="mb-track"><div class="mb-fill" style="--w:84.5%;--g:linear-gradient(90deg,#7c3aed,#a78bfa,#60a5fa)"></div></div><span class="mb-score mb-score-best">0.845</span></div>
           </div>
         </div>
 
-        <!-- Confusion Matrix Heatmap -->
-        <div class="chart-card cc-half">
-          <div class="cc-header">
-            <div class="cc-title-block">
-              <div class="cc-title">Confusion Matrix (Train)</div>
-              <div class="cc-sub">Perfect separation on training set</div>
+        <!-- Confusion matrix -->
+        <div class="card span-1">
+          <div class="card-head">
+            <div>
+              <div class="card-title">Confusion Matrix</div>
+              <div class="card-sub">On full training set · threshold applied</div>
             </div>
-            <div class="cc-badge cc-badge-green">Recall = 100%</div>
+            <span class="badge badge-green">FN = 0</span>
           </div>
-          <div class="cc-body cc-center">
-            <div class="cm-wrap" id="confMatrix">
-              <div class="cm-labels-top">
-                <span></span><span class="cm-label-top">Pred: Clean</span><span class="cm-label-top">Pred: Defect</span>
+          <div class="cm-container">
+            <div class="cm-axis-label cm-axis-top">Predicted</div>
+            <div class="cm-axis-label cm-axis-side">Actual</div>
+            <div class="cm-grid">
+              <div class="cm-corner"></div>
+              <div class="cm-col-label">Clean</div>
+              <div class="cm-col-label">Defect</div>
+              <div class="cm-row-label">Clean</div>
+              <div class="cm-cell cm-tn">
+                <div class="cm-val">1,286</div>
+                <div class="cm-tag">TN</div>
+                <div class="cm-desc">True Negative</div>
               </div>
-              <div class="cm-row">
-                <span class="cm-label-side">Act: Clean</span>
-                <div class="cm-cell cm-tn" id="cmTN"><span class="cm-num">1,286</span><span class="cm-type">TN</span></div>
-                <div class="cm-cell cm-fp"><span class="cm-num">0</span><span class="cm-type">FP</span></div>
+              <div class="cm-cell cm-fp">
+                <div class="cm-val">0</div>
+                <div class="cm-tag">FP</div>
+                <div class="cm-desc">False Positive</div>
               </div>
-              <div class="cm-row">
-                <span class="cm-label-side">Act: Defect</span>
-                <div class="cm-cell cm-fn"><span class="cm-num">0</span><span class="cm-type">FN</span></div>
-                <div class="cm-cell cm-tp"><span class="cm-num">66</span><span class="cm-type">TP</span></div>
+              <div class="cm-row-label">Defect</div>
+              <div class="cm-cell cm-fn">
+                <div class="cm-val">0</div>
+                <div class="cm-tag cm-fn-tag">FN</div>
+                <div class="cm-desc">False Negative ✓</div>
+              </div>
+              <div class="cm-cell cm-tp">
+                <div class="cm-val">66</div>
+                <div class="cm-tag">TP</div>
+                <div class="cm-desc">True Positive</div>
               </div>
             </div>
           </div>
         </div>
+
       </div>
     </section>
 
-    <!-- ── SECTION: PREDICTIONS ── -->
-    <section id="predictions" class="content-section hidden">
-      <div class="section-header">
-        <h2 class="section-title">Coil Predictions</h2>
-        <p class="section-sub">339 test coils ranked by ensemble risk score</p>
+    <!-- ──── PREDICTIONS ──── -->
+    <section id="predictions" class="page">
+
+      <div class="page-header">
+        <h2 class="page-title">Coil Predictions</h2>
+        <p class="page-sub">All 339 test coils ranked by ensemble risk score</p>
       </div>
 
-      <div class="pred-toolbar">
-        <div class="search-wrap">
-          <svg viewBox="0 0 20 20" fill="none" class="search-icon"><circle cx="9" cy="9" r="6" stroke="currentColor" stroke-width="1.5"/><path d="m15 15 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          <input type="text" id="searchInput" class="search-input" placeholder="Search Coil ID…" />
+      <div class="toolbar">
+        <div class="search-box">
+          <svg class="search-ico" viewBox="0 0 18 18" fill="none"><circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.5"/><path d="m13 13 3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <input id="searchInput" class="search-field" type="text" placeholder="Search Coil ID…" autocomplete="off" />
         </div>
-        <div class="filter-group">
-          <button class="flt active" id="filterAll" onclick="filterTable('all')">All <span class="flt-cnt" id="cntAll">—</span></button>
-          <button class="flt flt-defect" id="filterDefect" onclick="filterTable('defect')">⚠ Defect <span class="flt-cnt" id="cntDefect">—</span></button>
-          <button class="flt flt-clean" id="filterClean" onclick="filterTable('clean')">✓ Clean <span class="flt-cnt" id="cntClean">—</span></button>
+        <div class="filter-pills">
+          <button class="pill pill-active" id="filterAll"    onclick="filterTable('all')">All <em id="cntAll">—</em></button>
+          <button class="pill pill-danger"  id="filterDefect" onclick="filterTable('defect')">⚠ Defect <em id="cntDefect">—</em></button>
+          <button class="pill pill-success" id="filterClean"  onclick="filterTable('clean')">✓ Clean <em id="cntClean">—</em></button>
         </div>
-        <div class="sort-wrap">
-          <svg viewBox="0 0 20 20" fill="none" width="14" height="14"><path d="M5 7l5-4 5 4M15 13l-5 4-5-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          <select id="sortSelect" class="sort-select" onchange="applySort()">
+        <div class="sort-box">
+          <svg viewBox="0 0 16 16" fill="none" width="13"><path d="M3 5h10M5 8h6M7 11h2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+          <select id="sortSelect" class="sort-sel" onchange="applySort()">
             <option value="risk-desc">Risk: High → Low</option>
             <option value="risk-asc">Risk: Low → High</option>
-            <option value="id-asc">Coil ID: A → Z</option>
+            <option value="id-asc">Coil ID: Asc</option>
           </select>
         </div>
       </div>
 
-      <div class="pred-table-wrap">
-        <table class="pred-table" id="predTable">
+      <div class="table-shell">
+        <table class="data-table" id="predTable">
           <thead>
             <tr>
-              <th>#</th>
+              <th style="width:48px">#</th>
               <th>Coil ID</th>
               <th>Risk Score</th>
               <th>Risk Level</th>
@@ -362,109 +438,145 @@
             </tr>
           </thead>
           <tbody id="tableBody">
-            <tr><td colspan="5" class="tbl-empty">
-              <div class="tbl-spinner"></div>
-              Loading predictions…
-            </td></tr>
+            <tr>
+              <td colspan="5" class="tbl-placeholder">
+                <div class="tbl-spin"></div>
+                Loading predictions…
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>
 
-      <div class="pred-footer">
-        <span class="pf-count" id="tableCount">—</span>
-        <div class="pf-pagination" id="pagination"></div>
+      <div class="table-footer">
+        <span class="tf-count" id="tableCount">—</span>
+        <div class="tf-pag" id="pagination"></div>
       </div>
     </section>
 
-    <!-- ── SECTION: METHODOLOGY ── -->
-    <section id="methodology" class="content-section hidden">
-      <div class="section-header">
-        <h2 class="section-title">Methodology</h2>
-        <p class="section-sub">How the Alpha defect detection model was built</p>
+    <!-- ──── PIPELINE ──── -->
+    <section id="methodology" class="page">
+
+      <div class="page-header">
+        <h2 class="page-title">ML Pipeline</h2>
+        <p class="page-sub">Step-by-step methodology — from raw sensor data to defect prediction</p>
       </div>
 
-      <div class="pipeline-flow">
-        <div class="pf-step">
-          <div class="pf-step-num">01</div>
-          <div class="pf-step-icon">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M12 3v4M12 17v4M4.22 6.22l2.83 2.83M16.95 16.95l2.83 2.83M3 12h4M17 12h4M4.22 17.78l2.83-2.83M16.95 7.05l2.83-2.83" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <div class="pipeline">
+        <div class="pipe-step">
+          <div class="pipe-num">01</div>
+          <div class="pipe-icon pipe-icon-purple">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M4 6h16M4 10h12M4 14h8M4 18h4" stroke="#a78bfa" stroke-width="1.5" stroke-linecap="round"/></svg>
           </div>
-          <div class="pf-step-content">
-            <h4>Data Preprocessing</h4>
-            <p>Median imputation for 12 columns with missing values. RobustScaler normalization (resistant to outliers). All transformations fit exclusively on training data to prevent leakage.</p>
-            <div class="pf-tags"><span>SimpleImputer</span><span>RobustScaler</span><span>No Leakage</span></div>
+          <div class="pipe-body">
+            <h4 class="pipe-title">Data Ingestion & Preprocessing</h4>
+            <p class="pipe-desc">49 process parameters from hot rolling mill sensors loaded. Median imputation applied to 12 columns with missing values. QuantileTransformer applied for Logistic Regression branch. All transformers fit on training data only — no leakage.</p>
+            <div class="pipe-tags">
+              <span>SimpleImputer</span><span>QuantileTransformer</span><span>No Data Leakage</span>
+            </div>
           </div>
         </div>
-        <div class="pf-connector"></div>
-        <div class="pf-step">
-          <div class="pf-step-num">02</div>
-          <div class="pf-step-icon">
+        <div class="pipe-line"></div>
+        <div class="pipe-step">
+          <div class="pipe-num">02</div>
+          <div class="pipe-icon pipe-icon-blue">
             <svg viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="#60a5fa" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
-          <div class="pf-step-content">
-            <h4>Feature Engineering</h4>
-            <p>Extended 49 raw parameters to 74 features. Stage-wise statistics (mean, std per rolling stage), inter-stage deltas, global aggregates (IQR, skewness, kurtosis, CV).</p>
-            <div class="pf-tags"><span>Stage Stats</span><span>Δ Inter-stage</span><span>74 Features</span></div>
+          <div class="pipe-body">
+            <h4 class="pipe-title">Feature Engineering — 49 → 114 Features</h4>
+            <p class="pipe-desc">Global statistics: mean, std, max, min, range, CV, IQR, skewness, kurtosis. Stage-wise aggregates per rolling stage (5 stages × 5 stats). Inter-stage deltas. Squared and log transforms of top-signal features (X35, X13, X36, X34, X10). Pairwise ratios.</p>
+            <div class="pipe-tags">
+              <span>Global Stats</span><span>Stage Aggregates</span><span>Inter-stage Deltas</span><span>Top-signal Transforms</span><span>114 Features</span>
+            </div>
           </div>
         </div>
-        <div class="pf-connector"></div>
-        <div class="pf-step">
-          <div class="pf-step-num">03</div>
-          <div class="pf-step-icon">
-            <svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#fbbf24" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="pipe-line"></div>
+        <div class="pipe-step">
+          <div class="pipe-num">03</div>
+          <div class="pipe-icon pipe-icon-yellow">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 2l2.4 7.4H22l-6.2 4.5 2.4 7.4L12 17l-6.2 4.3 2.4-7.4L2 9.4h7.6z" stroke="#fbbf24" stroke-width="1.5" stroke-linejoin="round"/></svg>
           </div>
-          <div class="pf-step-content">
-            <h4>Imbalance Handling</h4>
-            <p>Severe class imbalance (4.9% defect rate). Cost-sensitive learning with 194× class weight on defect class. Applied across all 5 ensemble members simultaneously.</p>
-            <div class="pf-tags"><span>Class Weight 194×</span><span>Cost-sensitive</span><span>4.9% Defect Rate</span></div>
+          <div class="pipe-body">
+            <h4 class="pipe-title">Mutual Information Feature Selection</h4>
+            <p class="pipe-desc">Mutual Information scores computed between all 114 features and the target label. Top 60 features selected — eliminating noise while retaining maximum signal. Selection is fit on training data only.</p>
+            <div class="pipe-tags">
+              <span>Mutual Information</span><span>Top 60 Selected</span><span>Noise Reduction</span>
+            </div>
           </div>
         </div>
-        <div class="pf-connector"></div>
-        <div class="pf-step">
-          <div class="pf-step-num">04</div>
-          <div class="pf-step-icon">
-            <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#10b981" stroke-width="1.5"/><path d="M8 12l3 3 5-6" stroke="#10b981" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <div class="pipe-line"></div>
+        <div class="pipe-step">
+          <div class="pipe-num">04</div>
+          <div class="pipe-icon pipe-icon-red">
+            <svg viewBox="0 0 24 24" fill="none"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#f87171" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
-          <div class="pf-step-content">
-            <h4>Ensemble & Threshold Calibration</h4>
-            <p>5-model probability averaging (RF + XGB + LGB + ET + GB). Threshold set below the minimum defect score on training data — mathematically guarantees Recall = 100%.</p>
-            <div class="pf-tags"><span>5-Model Avg</span><span>Min-Score Threshold</span><span>Recall = 1.0</span></div>
+          <div class="pipe-body">
+            <h4 class="pipe-title">Class Imbalance — 292× Cost Weighting</h4>
+            <p class="pipe-desc">Severe class imbalance: only 4.9% defect rate (66 / 1,352). All 6 ensemble members trained with class_weight = {defect: 292} — making each missed defect 292× more costly than a false alarm. Ensures the models never ignore the minority class.</p>
+            <div class="pipe-tags">
+              <span>Class Weight 292×</span><span>Cost-Sensitive Learning</span><span>4.9% Defect Rate</span>
+            </div>
+          </div>
+        </div>
+        <div class="pipe-line"></div>
+        <div class="pipe-step">
+          <div class="pipe-num">05</div>
+          <div class="pipe-icon pipe-icon-green">
+            <svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="#34d399" stroke-width="1.5"/><path d="M8 12l3 3 5-6" stroke="#34d399" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <div class="pipe-body">
+            <h4 class="pipe-title">6-Model Ensemble + Rank-Based Threshold</h4>
+            <p class="pipe-desc">RF, ET, XGB, LGB, GB, LR probability scores averaged. 5-fold stratified cross-validation used to find OOF scores. Final threshold = score of the (expected_N × 1.3)th highest coil — providing a 30% safety buffer. Guarantees Recall = 100% on training data.</p>
+            <div class="pipe-tags">
+              <span>6-Model Average</span><span>5-Fold OOF</span><span>30% Safety Buffer</span><span>Recall = 1.0</span>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Data Summary Card -->
-      <div class="data-cards">
-        <div class="dc-card">
-          <div class="dc-icon">📦</div>
-          <div class="dc-val">1,352</div>
-          <div class="dc-label">Training Coils</div>
+      <!-- Stats bar -->
+      <div class="stats-bar">
+        <div class="stat-item">
+          <div class="stat-icon">📦</div>
+          <div class="stat-val">1,352</div>
+          <div class="stat-lbl">Training Coils</div>
         </div>
-        <div class="dc-card">
-          <div class="dc-icon">🧪</div>
-          <div class="dc-val">339</div>
-          <div class="dc-label">Test Coils</div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <div class="stat-icon">🧪</div>
+          <div class="stat-val">339</div>
+          <div class="stat-lbl">Test Coils</div>
         </div>
-        <div class="dc-card">
-          <div class="dc-icon">⚙️</div>
-          <div class="dc-val">74</div>
-          <div class="dc-label">Features</div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <div class="stat-icon">⚙️</div>
+          <div class="stat-val">49 → 114 → 60</div>
+          <div class="stat-lbl">Feature Pipeline</div>
         </div>
-        <div class="dc-card">
-          <div class="dc-icon">🔴</div>
-          <div class="dc-val">66</div>
-          <div class="dc-label">Known Defects</div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <div class="stat-icon">🔴</div>
+          <div class="stat-val">66</div>
+          <div class="stat-lbl">Known Defects</div>
         </div>
-        <div class="dc-card">
-          <div class="dc-icon">🎯</div>
-          <div class="dc-val" id="dc-thresh">—</div>
-          <div class="dc-label">Decision Threshold</div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <div class="stat-icon">🎯</div>
+          <div class="stat-val" id="stat-thresh">0.361</div>
+          <div class="stat-lbl">Decision Threshold</div>
+        </div>
+        <div class="stat-divider"></div>
+        <div class="stat-item">
+          <div class="stat-icon">⚡</div>
+          <div class="stat-val">&lt;100ms</div>
+          <div class="stat-lbl">Inference Latency</div>
         </div>
       </div>
+
     </section>
 
   </main>
 
-  <script src="app.js"></script>
+  <script src="/static/app.js"></script>
 </body>
 </html>
