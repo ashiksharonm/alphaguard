@@ -22,8 +22,8 @@ def test_health_response_schema(app_client):
 
 def test_model_info_endpoint(app_client):
     r = app_client.get("/model/info")
-    # May return 200 or 500 depending on whether model is loaded
-    assert r.status_code in (200, 500)
+    # 200 if model loaded, 503 if model not loaded
+    assert r.status_code in (200, 503)
 
 
 def test_metrics_endpoint_returns_prometheus_format(app_client):

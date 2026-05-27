@@ -25,6 +25,11 @@ META_PATH     = ARTIFACTS_DIR / "metadata.json"
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Load model on startup, clean up on shutdown."""
+    # Always pre-initialize state so endpoints never throw AttributeError
+    app.state.predictor   = None
+    app.state.metadata    = {}
+    app.state.start_time  = time.time()
+
     print("Loading AlphaGuard model...")
     try:
         from ml.predict import AlphaGuardPredictor
@@ -35,9 +40,6 @@ async def lifespan(app: FastAPI):
         print(f"Model loaded: v{app.state.predictor.version} | AUC={app.state.metadata.get('cv_auc')}")
     except FileNotFoundError:
         print("WARNING: No model artifact found. Run: python ml/train.py")
-        app.state.predictor = None
-        app.state.metadata  = {}
-    app.state.start_time = time.time()
     yield
     print("Shutting down.")
 

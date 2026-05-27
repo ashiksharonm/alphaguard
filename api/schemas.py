@@ -3,7 +3,7 @@ api/schemas.py — Pydantic request/response models.
 """
 from __future__ import annotations
 from typing import List, Optional
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 
 class CoilInput(BaseModel):
@@ -28,14 +28,15 @@ class CoilInput(BaseModel):
     X46: Optional[float]=None; X47: Optional[float]=None; X48: Optional[float]=None
     X49: Optional[float]=None
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "coil_id": 654,
                 "X1": 854.79, "X2": 501.09, "X3": 414.84,
                 "X10": 9.49, "X13": 1312.3, "X36": 378.9
             }
         }
+    )
 
 
 class PredictRequest(BaseModel):

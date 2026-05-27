@@ -8699,5 +8699,18 @@
       66
     ]
   ],
-  "strategy": "Rank-based: top-23 by ensemble risk score (1.3x safety buffer)"
+  "strategy": "Rank-based: top-23 by ensemble risk score (1.3x safety buffer)",
+  "version": "1.0.0",
+  "threshold": 0.36145,
+  "n_features_raw": 49,
+  "n_features_eng": 114,
+  "n_features_sel": 60,
+  "models": [
+    "rf",
+    "et",
+    "xgb",
+    "lgb",
+    "gb",
+    "lr"
+  ]
 }

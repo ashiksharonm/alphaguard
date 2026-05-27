@@ -23,8 +23,8 @@ async def predict(body: PredictRequest, request: Request):
     Send process parameters for each coil; receive risk score,
     risk level, and binary prediction (1=Defect, 0=Clean).
     """
-    predictor = request.app.state.predictor
-    metadata  = request.app.state.metadata
+    predictor = getattr(request.app.state, "predictor", None)
+    metadata  = getattr(request.app.state, "metadata", {})
     if predictor is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
 
@@ -65,8 +65,8 @@ async def predict_batch(request: Request, file: UploadFile = File(...)):
     Predict from an uploaded CSV file.
     CSV must have columns: CoilID (optional), X1..X49.
     """
-    predictor = request.app.state.predictor
-    metadata  = request.app.state.metadata
+    predictor = getattr(request.app.state, "predictor", None)
+    metadata  = getattr(request.app.state, "metadata", {})
     if predictor is None:
         raise HTTPException(status_code=503, detail="Model not loaded")
 
