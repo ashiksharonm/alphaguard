@@ -117,6 +117,22 @@ flowchart LR
 
 ---
 
+## 📊 Test Data (For Recruiters & Testing)
+
+Because the original Hackathon training data is proprietary to Tata Steel, I have generated a **purely synthetic, obfuscated dataset** based on the mathematical distributions (mean, variance, bounds) of the real sensor data. 
+
+**Want to test the API?** 
+1. [Download the Sample Test Dataset here](https://sharonashik005-alphaguard.hf.space/static/sample_test_data.csv) (or find it in this repo at `frontend/sample_test_data.csv`).
+2. Upload this CSV file directly to the `/predict/batch` endpoint or the web dashboard to see AlphaGuard generate predictions in real-time!
+
+**Data Schema Overview (49 Features):**
+* **X1 to X10:** Temperature readings across 5 rolling stages.
+* **X11 to X20:** Speed and tension metrics.
+* **X21 to X30:** Force and torque applied by the rollers.
+* **X31 to X49:** Thickness and width measurements, plus derived inter-stage delta calculations.
+
+---
+
 ## 🚀 Quick Start
 
 ### Option A — Local Python
