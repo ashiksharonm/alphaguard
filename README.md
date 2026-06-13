@@ -26,29 +26,93 @@ The system analyzes **49 real-time process parameters** (temperature, speed, for
 
 ## 🏗️ Architecture
 
+### High-Level System Architecture
+
+```mermaid
+graph TD
+    %% Define styles for different layers
+    classDef client fill:#f9f9f9,stroke:#333,stroke-width:2px;
+    classDef api fill:#e1f5fe,stroke:#0288d1,stroke-width:2px;
+    classDef model fill:#e8f5e9,stroke:#388e3c,stroke-width:2px;
+    classDef monitoring fill:#fff3e0,stroke:#f57c00,stroke-width:2px;
+    classDef cicd fill:#fce4ec,stroke:#c2185b,stroke-width:2px;
+
+    subgraph Clients["🏭 Mill Control Systems"]
+        Sensor["Sensor Data (49 Parameters)"]:::client
+        Batch["Batch CSV Uploads"]:::client
+    end
+
+    subgraph AppLayer["🚀 FastAPI Application (Docker)"]
+        Router["/predict & /predict/batch"]:::api
+        FeatureEng["Feature Engineering Pipeline"]:::api
+        PromMiddleware["Prometheus Metrics"]:::api
+    end
+
+    subgraph InferenceLayer["🤖 ML Engine (6-Model Ensemble)"]
+        Ensemble["XGBoost, LightGBM, RF, ET, GB, LR"]:::model
+        Aggregator["Probability Averager & Rank Thresholding"]:::model
+    end
+
+    subgraph OpsLayer["📊 Monitoring Stack"]
+        Prometheus["Prometheus Time-Series DB"]:::monitoring
+        Grafana["Grafana Dashboards & Alerts"]:::monitoring
+    end
+
+    subgraph DeployLayer["🔄 CI/CD Pipeline"]
+        Git["GitHub Repository"]:::cicd
+        Jenkins["Jenkins Server"]:::cicd
+    end
+
+    %% Data flow
+    Sensor -->|"REST POST /predict"| Router
+    Batch -->|"REST POST /predict/batch"| Router
+    
+    Router --> FeatureEng
+    FeatureEng --> Ensemble
+    Ensemble --> Aggregator
+    Aggregator -->|"Prediction: Defect / Clean"| Router
+    
+    Router -->|"Logs Metrics"| PromMiddleware
+    PromMiddleware -.->|"Scrapes :8000/metrics"| Prometheus
+    Prometheus -->|"Visualizes"| Grafana
+    
+    Git -->|"Push / PR"| Jenkins
+    Jenkins -->|"Build & Contract Tests"| AppLayer
 ```
-                    ┌─────────────────────────────────────────┐
-                    │            GitHub Repository             │
-                    └────────────┬───────────────┬────────────┘
-                                 │               │
-                       push to main         push to branch
-                                 │               │
-                    ┌────────────▼───────────────▼────────────┐
-                    │          Jenkins CI/CD Pipeline          │
-                    │                                          │
-                    │  Checkout → Lint → Test → Build → Deploy │
-                    │               └──── Smoke Test          │
-                    └────────────────────────┬─────────────────┘
-                                             │
-                    ┌────────────────────────▼─────────────────┐
-                    │         Docker Compose Stack              │
-                    │                                           │
-                    │  ┌──────────┐  ┌──────────┐ ┌─────────┐ │
-                    │  │AlphaGuard│  │Prometheus│ │ Grafana │ │
-                    │  │FastAPI   │  │:9090     │ │ :3000   │ │
-                    │  │:8000     │  └──────────┘ └─────────┘ │
-                    │  └──────────┘                            │
-                    └──────────────────────────────────────────┘
+
+### Detailed ML Pipeline
+
+```mermaid
+flowchart LR
+    %% Styles
+    classDef data fill:#bbdefb,stroke:#1976d2,stroke-width:2px;
+    classDef feature fill:#c8e6c9,stroke:#388e3c,stroke-width:2px;
+    classDef ensemble fill:#ffe0b2,stroke:#f57c00,stroke-width:2px;
+    classDef output fill:#ffcdd2,stroke:#d32f2f,stroke-width:2px;
+
+    Raw[("Raw Data (49 feats)")]:::data --> Impute["Median Imputation"]:::feature
+    
+    Impute --> Eng["Feature Engineering (114 feats)"]:::feature
+    Eng --> Stats["9 Global Stats"]:::feature
+    Eng --> Stages["25 Stage Aggregates"]:::feature
+    Eng --> Deltas["4 Inter-stage Deltas"]:::feature
+    Eng --> Transforms["10 Feature Transforms"]:::feature
+    Eng --> Ratios["7 Pairwise Ratios"]:::feature
+    
+    Stats & Stages & Deltas & Transforms & Ratios --> Select["Mutual Information Selection (Top 60)"]:::feature
+    
+    Select --> Ensemble{"6-Model Ensemble (292x Class Weight)"}:::ensemble
+    
+    Ensemble --> M1["Random Forest (1000)"]:::ensemble
+    Ensemble --> M2["Extra Trees (1000)"]:::ensemble
+    Ensemble --> M3["XGBoost (800)"]:::ensemble
+    Ensemble --> M4["LightGBM (800)"]:::ensemble
+    Ensemble --> M5["Gradient Boosting (600)"]:::ensemble
+    Ensemble --> M6["Logistic Regression"]:::ensemble
+    
+    M1 & M2 & M3 & M4 & M5 & M6 --> Avg["Probability Averaging"]:::ensemble
+    Avg --> Threshold["Rank-based Threshold (Safety Buffer)"]:::output
+    Threshold --> Pred(("Final Prediction: 100% Recall")):::output
 ```
 
 ---
