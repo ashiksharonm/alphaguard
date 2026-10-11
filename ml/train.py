@@ -149,12 +149,10 @@ def train(data_dir: str, output_dir: str, n_top_features: int = 60) -> Dict[str,
         for n in trained
     ], axis=0)
     tr_preds = (tr_probs >= top_thresh).astype(int)
-    for i in np.where(y == 1)[0]:
-        tr_preds[i] = 1   # safety force
 
     train_recall    = float(recall_score(y, tr_preds))
     train_precision = float(precision_score(y, tr_preds, zero_division=0))
-    print(f"Train Recall: {train_recall:.4f} | Precision: {train_precision:.4f}")
+    print(f"(in-sample, optimistic) Train Recall: {train_recall:.4f} | Precision: {train_precision:.4f}")
 
     # ── Feature importances ───────────────────────────────────────────────────
     rf_imp  = trained["rf"].feature_importances_
