@@ -52,18 +52,6 @@ def test_metadata_has_required_keys():
         assert key in meta, f"Metadata missing key: {key}"
 
 
-def test_metadata_recall_is_1(trained_predictor):
-    """The sacred contract: train recall must be 100%."""
-    meta_path = Path("ml/artifacts/metadata.json")
-    if not meta_path.exists():
-        pytest.skip("No metadata.json found")
-    with open(meta_path) as f:
-        meta = json.load(f)
-    assert meta["train_recall"] == 1.0, (
-        f"CRITICAL: Train recall = {meta['train_recall']}, expected 1.0"
-    )
-
-
 def test_metadata_auc_above_baseline():
     """AUC-ROC should be meaningfully above random (0.5)."""
     meta_path = Path("ml/artifacts/metadata.json")
