@@ -271,15 +271,6 @@ Out-of-fold recall is not recorded in `metadata.json`, so no recall figure is cl
 
 > **Why recall matters**: in steel manufacturing a missed defect (false negative) can cause coil breaks downstream, so the threshold favours recall over precision. This is a design intent, not a measured guarantee.
 
---------|-------|
-| **CV AUC-ROC** | 0.845 |
-| **CV Average Precision** | 0.277 |
-| **Train Recall** | 100.0% |
-| **Train Precision** | 100.0% |
-| **False Negatives (train)** | 0 |
-
-> **Why 100% Recall matters**: In steel manufacturing, a missed defect (false negative) causes coil breaks in downstream processing — resulting in hours of downtime and significant material waste. The model is tuned to **never** miss a defect.
-
 ---
 
 ## 🧪 Testing
